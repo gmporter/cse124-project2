@@ -1,5 +1,6 @@
 package surfstore;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -76,8 +77,9 @@ public final class MetadataStore {
         if (c_args == null){
             throw new RuntimeException("Argument parsing failed");
         }
-
-        ConfigReader config = new ConfigReader(c_args.getString("config_file"));
+        
+        File configf = new File(c_args.getString("config_file"));
+        ConfigReader config = new ConfigReader(configf);
 
         if (c_args.getInt("number") > config.getNumMetadataServers()) {
             throw new RuntimeException(String.format("metadata%d not in config file", c_args.getInt("number")));
