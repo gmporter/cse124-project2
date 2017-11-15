@@ -1,0 +1,3 @@
+*.pyc
+SurfStoreBasic_pb2.py
+SurfStoreBasic_pb2_grpc.py
