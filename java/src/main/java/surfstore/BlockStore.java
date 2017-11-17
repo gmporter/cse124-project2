@@ -2,8 +2,12 @@ package surfstore;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
+
+import com.google.protobuf.ByteString;
 
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
@@ -12,7 +16,10 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import surfstore.SurfStoreBasic.Block;
+import surfstore.SurfStoreBasic.Block.Builder;
 import surfstore.SurfStoreBasic.Empty;
+import surfstore.SurfStoreBasic.SimpleAnswer;
 
 
 public final class BlockStore {
@@ -86,6 +93,14 @@ public final class BlockStore {
     }
 
     static class BlockStoreImpl extends BlockStoreGrpc.BlockStoreImplBase {
+
+		protected Map<String, byte[]> blockMap;
+
+		public BlockStoreImpl() {
+			super();
+			this.blockMap = new HashMap<String, byte[]>();
+		}
+
         @Override
         public void ping(Empty req, final StreamObserver<Empty> responseObserver) {
             Empty response = Empty.newBuilder().build();
@@ -93,6 +108,44 @@ public final class BlockStore {
             responseObserver.onCompleted();
         }
 
-        // TODO: Implement the other RPCs!
-    }
+		@Override
+		public void storeBlock(surfstore.SurfStoreBasic.Block request,
+				io.grpc.stub.StreamObserver<surfstore.SurfStoreBasic.Empty> responseObserver) {
+			logger.info("Storing block with hash " + request.getHash());
+
+			blockMap.put(request.getHash(), request.getData().toByteArray());
+
+			Empty response = Empty.newBuilder().build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+		}
+
+		@Override
+		public void getBlock(surfstore.SurfStoreBasic.Block request,
+				io.grpc.stub.StreamObserver<surfstore.SurfStoreBasic.Block> responseObserver) {
+			logger.info("Getting block with hash " + request.getHash());
+
+			byte[] data = blockMap.get(request.getHash());
+
+			Builder builder = Block.newBuilder();
+			builder.setData(ByteString.copyFrom(data));
+			builder.setHash(request.getHash());
+			Block response = builder.build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+		}
+
+		@Override
+		public void hasBlock(surfstore.SurfStoreBasic.Block request,
+				io.grpc.stub.StreamObserver<surfstore.SurfStoreBasic.SimpleAnswer> responseObserver) {
+			logger.info("Testing for existence of block with hash " + request.getHash());
+
+			boolean answer = blockMap.containsKey(request.getHash());
+
+			SimpleAnswer response = SimpleAnswer.newBuilder().setAnswer(answer).build();
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+		}
+	}
 }
